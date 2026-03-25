@@ -414,6 +414,24 @@ def log_error(msg):
     print(msg, file=sys.stderr)
 
 
+def schedule_filter_reload():
+    """Spawn a detached filter reload that runs after this configd action exits.
+
+    Calling ``configctl filter reload`` directly inside a configd action
+    creates a nested configd call that deadlocks during boot (configd
+    waits for the action to finish while the action waits for configd to
+    process the filter reload).  By spawning the process detached, it
+    executes after the current action returns and configd is free.
+    """
+    subprocess.Popen(
+        ['/usr/local/sbin/configctl', 'filter', 'reload'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
 def do_start():
     cfg = read_config()
     if cfg is None or cfg['enabled'] != '1':
@@ -434,11 +452,13 @@ def do_start():
     if os.path.exists(TUN2SOCKS_BIN):
         start_tun2socks(cfg)
         configure_tun(cfg)
+    schedule_filter_reload()
 
 
 def do_stop():
     cfg = read_config()
     stop_services(cfg)
+    schedule_filter_reload()
 
 
 def truncate_log():
@@ -454,6 +474,8 @@ def do_reconfigure():
     truncate_log()
     if cfg and cfg['enabled'] == '1':
         do_start()
+    else:
+        schedule_filter_reload()
 
 
 def do_status():
