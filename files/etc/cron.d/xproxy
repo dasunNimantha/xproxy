@@ -1,0 +1,2 @@
+# Xproxy health check: restart xray/tun2socks if crashed
+* * * * *	root	/usr/local/sbin/configctl xproxy healthcheck > /dev/null 2>&1

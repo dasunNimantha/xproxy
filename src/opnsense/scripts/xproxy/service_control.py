@@ -326,6 +326,14 @@ def kill_pid(pidfile):
         pass
 
 
+def _go_env():
+    """Environment variables to limit Go runtime memory usage."""
+    env = os.environ.copy()
+    env['GOGC'] = '50'
+    env['GOMEMLIMIT'] = '128MiB'
+    return env
+
+
 def start_xray():
     if is_running(XRAY_PID):
         return
@@ -333,7 +341,7 @@ def start_xray():
         '/usr/sbin/daemon', '-c', '-f', '-p', XRAY_PID,
         XRAY_BIN, 'run', '-c', XRAY_CONFIG
     ]
-    subprocess.run(cmd, check=False)
+    subprocess.run(cmd, env=_go_env(), check=False)
     for _ in range(10):
         time.sleep(0.5)
         if is_running(XRAY_PID):
@@ -362,7 +370,7 @@ def start_tun2socks(cfg):
     ]
 
     for attempt in range(3):
-        subprocess.run(cmd, check=False)
+        subprocess.run(cmd, env=_go_env(), check=False)
         for _ in range(20):
             time.sleep(0.5)
             if is_running(TUN2SOCKS_PID):
@@ -489,9 +497,35 @@ def do_status():
         print("xproxy is not running")
 
 
+def do_healthcheck():
+    """Watchdog: detect crashed xray/tun2socks and recover.
+
+    If the service is enabled but xray is not running, it was likely
+    killed externally (OOM, signal).  Restart the full stack and reload
+    firewall rules so LAN traffic isn't black-holed by stale route-to
+    rules pointing at a dead tunnel.
+    """
+    cfg = read_config()
+    if cfg is None or cfg['enabled'] != '1':
+        return
+    if not cfg.get('active_server'):
+        return
+
+    xray_up = is_running(XRAY_PID)
+    tun_up = is_running(TUN2SOCKS_PID)
+
+    if xray_up and tun_up:
+        return
+
+    log_error('xproxy healthcheck: xray=%s tun2socks=%s — restarting'
+              % ('up' if xray_up else 'DOWN', 'up' if tun_up else 'DOWN'))
+    stop_services(cfg)
+    do_start()
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: service_control.py <start|stop|restart|reconfigure|status>")
+        print("Usage: service_control.py <start|stop|restart|reconfigure|status|healthcheck>")
         sys.exit(1)
 
     action = sys.argv[1]
@@ -506,6 +540,8 @@ def main():
         do_reconfigure()
     elif action == 'status':
         do_status()
+    elif action == 'healthcheck':
+        do_healthcheck()
     else:
         print("Unknown action: " + action)
         sys.exit(1)

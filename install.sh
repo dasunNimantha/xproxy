@@ -25,6 +25,11 @@ done
 
 chmod +x "${PREFIX}/opnsense/scripts/xproxy/"*.py "${PREFIX}/opnsense/scripts/xproxy/"*.sh "${PREFIX}/opnsense/scripts/xproxy/"*.php 2>/dev/null || true
 
+echo "==> Installing health check cron..."
+cd /tmp/xproxy-${BRANCH}
+mkdir -p /etc/cron.d
+cp files/etc/cron.d/xproxy /etc/cron.d/xproxy
+
 cd /tmp
 rm -rf xproxy-${BRANCH} xproxy.tar.gz
 
