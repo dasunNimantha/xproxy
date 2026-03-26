@@ -1,0 +1,185 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  python-tests:
+    name: Python unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run all tests
+        run: python -m pytest tests/ -v
+
+  python-lint:
+    name: Python syntax & style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check syntax (py_compile)
+        run: |
+          python -m py_compile src/opnsense/scripts/xproxy/service_control.py
+          python -m py_compile src/opnsense/scripts/xproxy/import_uris.py
+          python -m py_compile src/opnsense/scripts/xproxy/show_log.py
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Lint Python files
+        run: flake8 src/opnsense/scripts/xproxy/*.py --max-line-length=120 --count --show-source --statistics
+
+  php-lint:
+    name: PHP syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+
+      - name: Check PHP syntax
+        run: |
+          find src -name '*.php' -print0 | xargs -0 -n1 php -l
+
+  xml-lint:
+    name: XML validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate XML files
+        run: |
+          find src -name '*.xml' | while read -r f; do
+            echo "Checking $f"
+            python3 -c "import xml.etree.ElementTree as ET; ET.parse(r'''$f''')" || exit 1
+          done
+
+  shell-lint:
+    name: Shell script check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell scripts with shellcheck
+        run: |
+          shellcheck install.sh uninstall.sh src/opnsense/scripts/xproxy/setup.sh || true
+
+  conf-lint:
+    name: Config file validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate actions.conf structure
+        run: |
+          python3 -c "
+          import configparser, sys
+          cp = configparser.ConfigParser()
+          cp.read('src/opnsense/service/conf/actions.d/actions_xproxy.conf')
+          sections = cp.sections()
+          required = ['start', 'stop', 'restart', 'reconfigure', 'status']
+          missing = [s for s in required if s not in sections]
+          if missing:
+              print(f'Missing sections: {missing}', file=sys.stderr)
+              sys.exit(1)
+          for s in required:
+              if not cp.has_option(s, 'command'):
+                  print(f'Section [{s}] missing command', file=sys.stderr)
+                  sys.exit(1)
+          print(f'OK — sections: {sections}')
+          "
+
+  freebsd-tests:
+    name: FreeBSD integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.2"
+          usesh: true
+          prepare: |
+            pkg install -y python3 py311-pytest php82
+
+          run: |
+            set -ex
+
+            echo "==> Environment"
+            freebsd-version
+            python3 --version
+            php -v
+
+            REPO="/home/runner/work/xproxy/xproxy"
+
+            echo "==> Python tests on FreeBSD"
+            cd "$REPO"
+            python3 -m pytest tests/ -v
+
+            echo "==> PHP syntax check (FreeBSD PHP)"
+            find "$REPO/src" -name '*.php' -exec php -l {} \;
+
+            echo "==> XML validation"
+            find "$REPO/src" -name '*.xml' -exec python3 -c "
+            import sys, xml.etree.ElementTree as ET
+            ET.parse(sys.argv[1])
+            print('OK:', sys.argv[1])
+            " {} \;
+
+            echo "==> Shell script portability (/bin/sh)"
+            for script in "$REPO/install.sh" "$REPO/uninstall.sh" \
+                          "$REPO/src/opnsense/scripts/xproxy/setup.sh"; do
+              echo "Checking $script"
+              sh -n "$script"
+            done
+
+            echo "==> newsyslog.conf validation"
+            NEWSYSLOG="$REPO/src/usr/local/etc/newsyslog.conf.d/xproxy.conf"
+            if [ -f "$NEWSYSLOG" ]; then
+              awk '/^[^#]/ && NF < 5 { print "ERROR: bad line: "$0; exit 1 }' "$NEWSYSLOG"
+              echo "newsyslog.conf OK"
+            fi
+
+            echo "==> Install script dry-run (directory creation)"
+            TMPPREFIX=$(mktemp -d)
+            cd "$REPO/src"
+            find . -type f | while read FILE; do
+              DIR=$(dirname "${TMPPREFIX}/${FILE}")
+              mkdir -p "${DIR}"
+              cp "${FILE}" "${TMPPREFIX}/${FILE}"
+            done
+            echo "Files installed to temp prefix:"
+            find "$TMPPREFIX" -type f | head -20
+            test -f "$TMPPREFIX/opnsense/scripts/xproxy/service_control.py"
+            test -f "$TMPPREFIX/opnsense/scripts/xproxy/import_uris.py"
+            test -f "$TMPPREFIX/opnsense/service/conf/actions.d/actions_xproxy.conf"
+            test -f "$TMPPREFIX/etc/inc/plugins.inc.d/xproxy.inc"
+            echo "All expected files present"
+            rm -rf "$TMPPREFIX"
+
+            echo "==> All FreeBSD tests passed!"
