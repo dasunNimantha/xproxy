@@ -367,6 +367,9 @@ def start_tun2socks(cfg):
         TUN2SOCKS_BIN,
         '-device', 'tun://' + device,
         '-proxy', 'socks5://' + socks_addr,
+        '-tcp-rcvbuf', '32k',
+        '-tcp-sndbuf', '32k',
+        '-udp-timeout', '30s',
     ]
 
     for attempt in range(3):
@@ -497,35 +500,9 @@ def do_status():
         print("xproxy is not running")
 
 
-def do_healthcheck():
-    """Watchdog: detect crashed xray/tun2socks and recover.
-
-    If the service is enabled but xray is not running, it was likely
-    killed externally (OOM, signal).  Restart the full stack and reload
-    firewall rules so LAN traffic isn't black-holed by stale route-to
-    rules pointing at a dead tunnel.
-    """
-    cfg = read_config()
-    if cfg is None or cfg['enabled'] != '1':
-        return
-    if not cfg.get('active_server'):
-        return
-
-    xray_up = is_running(XRAY_PID)
-    tun_up = is_running(TUN2SOCKS_PID)
-
-    if xray_up and tun_up:
-        return
-
-    log_error('xproxy healthcheck: xray=%s tun2socks=%s — restarting'
-              % ('up' if xray_up else 'DOWN', 'up' if tun_up else 'DOWN'))
-    stop_services(cfg)
-    do_start()
-
-
 def main():
     if len(sys.argv) < 2:
-        print("Usage: service_control.py <start|stop|restart|reconfigure|status|healthcheck>")
+        print("Usage: service_control.py <start|stop|restart|reconfigure|status>")
         sys.exit(1)
 
     action = sys.argv[1]
@@ -540,8 +517,6 @@ def main():
         do_reconfigure()
     elif action == 'status':
         do_status()
-    elif action == 'healthcheck':
-        do_healthcheck()
     else:
         print("Unknown action: " + action)
         sys.exit(1)

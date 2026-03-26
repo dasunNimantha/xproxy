@@ -101,7 +101,7 @@ jobs:
           cp = configparser.ConfigParser()
           cp.read('src/opnsense/service/conf/actions.d/actions_xproxy.conf')
           sections = cp.sections()
-          required = ['start', 'stop', 'restart', 'reconfigure', 'status', 'healthcheck']
+          required = ['start', 'stop', 'restart', 'reconfigure', 'status']
           missing = [s for s in required if s not in sections]
           if missing:
               print(f'Missing sections: {missing}', file=sys.stderr)

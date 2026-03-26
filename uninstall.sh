@@ -24,9 +24,6 @@ done
 cd /tmp
 rm -rf xproxy-main xproxy.tar.gz
 
-echo "==> Removing health check cron..."
-rm -f /etc/cron.d/xproxy
-
 echo "==> Restarting configd..."
 service configd restart
 
