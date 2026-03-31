@@ -7,10 +7,28 @@ set -e
 
 REPO="dasunNimantha/xproxy"
 BRANCH="main"
-BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 PREFIX="/usr/local"
 
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Error: run this installer as root."
+    exit 1
+fi
+
 echo "==> Installing xproxy..."
+
+MISSING_PKGS=""
+for PKG in xray-core unzip; do
+    if ! pkg info -e "${PKG}" >/dev/null 2>&1; then
+        MISSING_PKGS="${MISSING_PKGS} ${PKG}"
+    fi
+done
+
+if [ -n "${MISSING_PKGS}" ]; then
+    echo "==> Installing required packages:${MISSING_PKGS}"
+    pkg install -y ${MISSING_PKGS}
+else
+    echo "==> Required packages already installed."
+fi
 
 cd /tmp
 fetch -o xproxy.tar.gz "https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz"
@@ -24,6 +42,9 @@ find . -type f | while read FILE; do
 done
 
 chmod +x "${PREFIX}/opnsense/scripts/xproxy/"*.py "${PREFIX}/opnsense/scripts/xproxy/"*.sh "${PREFIX}/opnsense/scripts/xproxy/"*.php 2>/dev/null || true
+
+echo "==> Installing tun2socks..."
+"${PREFIX}/opnsense/scripts/xproxy/setup.sh"
 
 cd /tmp
 rm -rf xproxy-${BRANCH} xproxy.tar.gz

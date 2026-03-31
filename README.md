@@ -26,8 +26,8 @@ When enabled, all LAN traffic is routed through a VLESS, VMess, Shadowsocks, or 
 
 | Package | Source | Status |
 |---|---|---|
-| xray-core | [security/xray-core](https://www.freshports.org/security/xray-core/) | In FreeBSD ports |
-| tun2socks | [xjasonlyu/tun2socks](https://github.com/xjasonlyu/tun2socks) | Downloaded by setup script |
+| xray-core | [security/xray-core](https://www.freshports.org/security/xray-core/) | Installed by `install.sh` or manual setup |
+| tun2socks | [xjasonlyu/tun2socks](https://github.com/xjasonlyu/tun2socks) | Downloaded by `install.sh` / `xproxy setup` |
 
 ## Installation
 
@@ -37,12 +37,17 @@ SSH into your OPNsense firewall and run:
 fetch -o - https://raw.githubusercontent.com/dasunNimantha/xproxy/main/install.sh | sh
 ```
 
+The installer copies the plugin files, installs `xray-core` and `unzip`, downloads the `tun2socks` binary, and restarts `configd`.
+
 Then navigate to **VPN > Xproxy** in the web UI to configure.
 
 ### Manual installation
 
 ```bash
-# Clone and copy files
+# Install runtime dependencies
+pkg install -y xray-core unzip
+
+# Clone and copy plugin files
 cd /tmp
 fetch -o xproxy.tar.gz https://github.com/dasunNimantha/xproxy/archive/refs/heads/main.tar.gz
 tar xzf xproxy.tar.gz
@@ -51,6 +56,8 @@ find . -type f | while read FILE; do
   mkdir -p "$(dirname /usr/local/$FILE)"
   cp "$FILE" "/usr/local/$FILE"
 done
+chmod +x /usr/local/opnsense/scripts/xproxy/*.py /usr/local/opnsense/scripts/xproxy/*.sh /usr/local/opnsense/scripts/xproxy/*.php 2>/dev/null || true
+/usr/local/opnsense/scripts/xproxy/setup.sh
 service configd restart
 ```
 
