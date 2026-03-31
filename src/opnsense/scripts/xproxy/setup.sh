@@ -31,7 +31,11 @@ echo "Downloading tun2socks v${TUN2SOCKS_VERSION} for ${ARCH}..."
 fetch -o "${TMPDIR}/${ASSET}.zip" "$URL" || exit 1
 
 cd "$TMPDIR" || exit 1
-unzip -o "${ASSET}.zip" || exit 1
+if command -v unzip >/dev/null 2>&1; then
+    unzip -o "${ASSET}.zip" || exit 1
+else
+    bsdtar -xf "${ASSET}.zip" || exit 1
+fi
 
 if [ -f "${ASSET}" ]; then
     install -m 0755 "${ASSET}" "$TUN2SOCKS_BIN"

@@ -17,7 +17,7 @@ fi
 echo "==> Installing xproxy..."
 
 MISSING_PKGS=""
-for PKG in xray-core unzip; do
+for PKG in xray-core; do
     if ! pkg info -e "${PKG}" >/dev/null 2>&1; then
         MISSING_PKGS="${MISSING_PKGS} ${PKG}"
     fi

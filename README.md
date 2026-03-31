@@ -37,15 +37,15 @@ SSH into your OPNsense firewall and run:
 fetch -o - https://raw.githubusercontent.com/dasunNimantha/xproxy/main/install.sh | sh
 ```
 
-The installer copies the plugin files, installs `xray-core` and `unzip`, downloads the `tun2socks` binary, and restarts `configd`.
+The installer copies the plugin files, installs `xray-core`, downloads the `tun2socks` binary, and restarts `configd`.
 
 Then navigate to **VPN > Xproxy** in the web UI to configure.
 
 ### Manual installation
 
 ```bash
-# Install runtime dependencies
-pkg install -y xray-core unzip
+# Install runtime dependency
+pkg install -y xray-core
 
 # Clone and copy plugin files
 cd /tmp
