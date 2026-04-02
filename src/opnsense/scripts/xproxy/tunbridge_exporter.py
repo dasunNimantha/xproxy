@@ -11,18 +11,13 @@ rather than daemon wrappers.
 
 import http.server
 import os
-import re
 import subprocess
-import time
 
 LISTEN_PORT = 9101
-SCRAPE_INTERVAL = 0  # computed on each /metrics request
 
 XRAY_PID_FILE = '/var/run/xproxy_xray.pid'
 HEV_PID_FILE = '/var/run/xproxy_hev.pid'
 TUN_DEVICE = 'tun9'
-
-_proc_start_times = {}
 
 
 def _read_pid(pidfile):

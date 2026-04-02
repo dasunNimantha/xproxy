@@ -43,6 +43,7 @@ jobs:
           python -m py_compile src/opnsense/scripts/xproxy/service_control.py
           python -m py_compile src/opnsense/scripts/xproxy/import_uris.py
           python -m py_compile src/opnsense/scripts/xproxy/show_log.py
+          python -m py_compile src/opnsense/scripts/xproxy/tunbridge_exporter.py
 
       - name: Install flake8
         run: pip install flake8
