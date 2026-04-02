@@ -39,7 +39,7 @@ class ServersController extends ApiMutableModelControllerBase
     {
         return $this->searchBase(
             "servers.server",
-            array('description', 'protocol', 'address', 'port'),
+            array('description', 'protocol', 'address', 'port', 'security'),
             "description"
         );
     }

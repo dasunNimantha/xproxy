@@ -148,6 +148,17 @@ function xproxy_firewall(\OPNsense\Firewall\Plugin $fw)
         }
     }
 
+    $selectedIfs = array();
+    $routeIfRaw = (string)$mdl->general->route_interfaces;
+    if (!empty($routeIfRaw)) {
+        foreach (explode(',', $routeIfRaw) as $entry) {
+            $entry = trim($entry);
+            if (!empty($entry)) {
+                $selectedIfs[] = $entry;
+            }
+        }
+    }
+
     foreach ($config['interfaces'] as $ifent => $iface) {
         if (!is_array($iface) || empty($iface['enable'])) {
             continue;
@@ -156,6 +167,9 @@ function xproxy_firewall(\OPNsense\Firewall\Plugin $fw)
             continue;
         }
         if ($ifent === 'wan' || $ifent === 'xproxytun') {
+            continue;
+        }
+        if (!empty($selectedIfs) && !in_array($ifent, $selectedIfs)) {
             continue;
         }
 

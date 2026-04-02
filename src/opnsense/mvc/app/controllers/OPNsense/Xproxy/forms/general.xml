@@ -39,7 +39,14 @@
         <id>xproxy.general.policy_route_lan</id>
         <label>Route LAN through tunnel</label>
         <type>checkbox</type>
-        <help>When Xproxy is enabled, automatically send IPv4 traffic from all enabled non-WAN interfaces through the TUN (hev-socks5-tunnel + VLESS). LAN devices need no proxy settings. A system gateway XPROXY_TUN and firewall rules are managed automatically. Disable if you only want local SOCKS/HTTP on the firewall.</help>
+        <help>Automatically route IPv4 traffic through the TUN tunnel. LAN devices need no proxy settings. A system gateway XPROXY_TUN and firewall rules are managed automatically. Disable if you only want local SOCKS/HTTP on the firewall.</help>
+    </field>
+    <field>
+        <id>xproxy.general.route_interfaces</id>
+        <label>Tunnel Interfaces</label>
+        <type>select_multiple</type>
+        <style>selectpicker</style>
+        <help>Select which interfaces to route through the tunnel. Leave empty to route all non-WAN interfaces (default). Use this to route only specific networks (e.g. Guest, IoT) while keeping your main LAN direct.</help>
     </field>
     <field>
         <id>xproxy.general.tun_device</id>
@@ -58,18 +65,6 @@
         <label>TUN Gateway</label>
         <type>text</type>
         <help>Far gateway address for the TUN interface. Use this as the OPNsense gateway address.</help>
-    </field>
-    <field>
-        <id>xproxy.general.tun_mtu</id>
-        <label>TUN MTU</label>
-        <type>text</type>
-        <help>Maximum transmission unit for the TUN interface.</help>
-    </field>
-    <field>
-        <id>xproxy.general.log_level</id>
-        <label>Log Level</label>
-        <type>dropdown</type>
-        <help>Logging verbosity for xray-core.</help>
     </field>
     <field>
         <id>xproxy.general.bypass_ips</id>

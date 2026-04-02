@@ -139,8 +139,8 @@ def read_config():
         'tun_device': txt(general, 'tun_device', 'tun9'),
         'tun_address': txt(general, 'tun_address', '10.255.0.1'),
         'tun_gateway': txt(general, 'tun_gateway', '10.255.0.2'),
-        'tun_mtu': _safe_int(txt(general, 'tun_mtu', '1500'), 1500, 576, 9000),
-        'log_level': txt(general, 'log_level', 'warning'),
+        'policy_route_lan': txt(general, 'policy_route_lan', '1'),
+        'log_level': 'warning',
         'bypass_ips': txt(general, 'bypass_ips', '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8'),
         'servers': [],
     }
@@ -880,7 +880,7 @@ def do_start():
     if not start_xray():
         return
 
-    if os.path.isfile(HEV_BIN):
+    if cfg.get('policy_route_lan', '1') != '0' and os.path.isfile(HEV_BIN):
         if start_hev(cfg):
             configure_tun(cfg)
 

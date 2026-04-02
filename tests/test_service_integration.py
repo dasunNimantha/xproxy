@@ -31,7 +31,6 @@ SAMPLE_CONFIG_XML = """\
         <tun_device>tun9</tun_device>
         <tun_address>10.255.0.1</tun_address>
         <tun_gateway>10.255.0.2</tun_gateway>
-        <tun_mtu>1500</tun_mtu>
         <log_level>warning</log_level>
         <bypass_ips>10.0.0.0/8,192.168.0.0/16</bypass_ips>
         <policy_route_lan>1</policy_route_lan>
@@ -114,7 +113,6 @@ class TestReadConfig(unittest.TestCase):
             self.assertEqual(cfg['socks_port'], 10808)
             self.assertEqual(cfg['http_port'], 10809)
             self.assertEqual(cfg['tun_device'], 'tun9')
-            self.assertEqual(cfg['tun_mtu'], 1500)
             self.assertEqual(cfg['log_level'], 'warning')
             self.assertEqual(len(cfg['servers']), 2)
             self.assertEqual(cfg['servers'][0]['uuid'], 'uuid-1')

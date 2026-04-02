@@ -35,7 +35,6 @@ def _base_cfg(**overrides):
         'tun_device': 'tun9',
         'tun_address': '10.255.0.1',
         'tun_gateway': '10.255.0.2',
-        'tun_mtu': 1500,
         'log_level': 'warning',
         'bypass_ips': '10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8',
         'servers': [],
@@ -392,7 +391,6 @@ class TestReadConfigEdgeCases(unittest.TestCase):
                 <tun_device></tun_device>
                 <tun_address></tun_address>
                 <tun_gateway></tun_gateway>
-                <tun_mtu></tun_mtu>
                 <log_level></log_level>
                 <bypass_ips></bypass_ips>
             </general>
@@ -427,7 +425,6 @@ class TestReadConfigEdgeCases(unittest.TestCase):
             self.assertEqual(cfg['socks_port'], 10808)
             self.assertEqual(cfg['http_port'], 10809)
             self.assertEqual(cfg['tun_device'], 'tun9')
-            self.assertEqual(cfg['tun_mtu'], 1500)
             srv = cfg['servers'][0]
             self.assertEqual(srv['protocol'], 'vless')
             self.assertEqual(srv['port'], 443)

@@ -1,5 +1,14 @@
 <form>
     <field>
+        <id>server.enabled</id>
+        <label>Enabled</label>
+        <type>checkbox</type>
+        <help>Enable or disable this server profile.</help>
+        <grid_view>
+            <visible>false</visible>
+        </grid_view>
+    </field>
+    <field>
         <id>server.description</id>
         <label>Description</label>
         <type>text</type>
@@ -106,7 +115,7 @@
         <type>dropdown</type>
         <help>TLS security mode.</help>
         <grid_view>
-            <visible>false</visible>
+            <width>7em</width>
         </grid_view>
     </field>
     <field>

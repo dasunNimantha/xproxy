@@ -23,11 +23,43 @@
         var gridId = "#{{formGridServer['table_id']}}";
         var generalDirty = true;
 
+        var excludeInterfaces = ['wan', 'lo0', 'xproxytun'];
+        var tunFields = [
+            'route_interfaces', 'tun_device', 'tun_address', 'tun_gateway', 'bypass_ips'
+        ];
+
+        function filterTunnelInterfaces() {
+            var sel = $('#xproxy\\.general\\.route_interfaces');
+            sel.find('option').each(function() {
+                var val = $(this).val();
+                if (excludeInterfaces.indexOf(val) !== -1 || val.match(/^tun\d/)) {
+                    $(this).remove();
+                }
+            });
+            sel.attr('title', 'All interfaces (default)');
+            sel.selectpicker('refresh');
+        }
+
+        function toggleTunFields() {
+            var checked = $('#xproxy\\.general\\.policy_route_lan').is(':checked');
+            $.each(tunFields, function(_, fld) {
+                var row = $('#xproxy\\.general\\.' + fld).closest('tr');
+                if (checked) {
+                    row.show();
+                } else {
+                    row.hide();
+                }
+            });
+        }
+
         function refreshGeneralForm() {
             generalDirty = false;
             return mapDataToFormUI(data_get_map).done(function() {
                 formatTokenizersUI();
+                filterTunnelInterfaces();
                 $('.selectpicker').selectpicker('refresh');
+                toggleTunFields();
+                $('#xproxy\\.general\\.policy_route_lan').off('change.tun').on('change.tun', toggleTunFields);
             });
         }
 
@@ -49,6 +81,38 @@
             markGeneralDirty();
         });
 
+        function updateServerDialogFields() {
+            var dlg = $('#' + "{{formGridServer['edit_dialog_id']}}");
+            var proto = dlg.find('#server\\.protocol').val();
+            var security = dlg.find('#server\\.security').val();
+            var transport = dlg.find('#server\\.transport').val();
+
+            var showUuid = (proto === 'vless' || proto === 'vmess');
+            var showPassword = (proto === 'shadowsocks' || proto === 'trojan');
+            var showFlow = (proto === 'vless');
+            var showEncryption = (proto === 'vless' || proto === 'vmess' || proto === 'shadowsocks');
+            var showReality = (security === 'reality');
+            var showTlsFields = (security === 'tls' || security === 'reality');
+            var showTransportDetail = (transport === 'ws' || transport === 'h2' || transport === 'grpc' || transport === 'httpupgrade');
+
+            dlg.find('#server\\.user_id').closest('.form-group').toggle(showUuid);
+            dlg.find('#server\\.password').closest('.form-group').toggle(showPassword);
+            dlg.find('#server\\.flow').closest('.form-group').toggle(showFlow);
+            dlg.find('#server\\.encryption').closest('.form-group').toggle(showEncryption);
+            dlg.find('#server\\.reality_pubkey').closest('.form-group').toggle(showReality);
+            dlg.find('#server\\.reality_short_id').closest('.form-group').toggle(showReality);
+            dlg.find('#server\\.sni').closest('.form-group').toggle(showTlsFields);
+            dlg.find('#server\\.fingerprint').closest('.form-group').toggle(showTlsFields);
+            dlg.find('#server\\.alpn').closest('.form-group').toggle(showTlsFields && !showReality);
+            dlg.find('#server\\.transport_host').closest('.form-group').toggle(showTransportDetail);
+            dlg.find('#server\\.transport_path').closest('.form-group').toggle(showTransportDetail);
+        }
+
+        $(document).on('change', '#server\\.protocol, #server\\.security, #server\\.transport', updateServerDialogFields);
+        $(document).on('shown.bs.modal', '#' + "{{formGridServer['edit_dialog_id']}}", function() {
+            setTimeout(updateServerDialogFields, 50);
+        });
+
         $("#reconfigureAct").SimpleActionButton({
             onPreAction: function() {
                 const dfObj = new $.Deferred();
@@ -62,15 +126,23 @@
         updateServiceControlUI('xproxy');
 
         // Import tab
+        var importRunning = false;
         $("#importAct").click(function() {
+            if (importRunning) {
+                return;
+            }
             var uris = $("#import_uris_text").val();
             if (!uris || uris.trim() === '') {
                 BootstrapDialog.alert('{{ lang._("Please paste at least one proxy URI.") }}');
                 return;
             }
+            importRunning = true;
+            $("#importAct").prop('disabled', true);
             $("#importAct_progress").addClass("fa fa-spinner fa-pulse");
             ajaxCall('/api/xproxy/import/uris', {uris: uris}, function(data, status) {
                 $("#importAct_progress").removeClass("fa fa-spinner fa-pulse");
+                $("#importAct").prop('disabled', false);
+                importRunning = false;
                 if (status !== 'success' || data === undefined || data === null) {
                     BootstrapDialog.alert('{{ lang._("Import request failed (network or server error).") }}');
                     return;
@@ -83,12 +155,30 @@
                     if (data.auto_selected) {
                         msg += '<br/>{{ lang._("Auto-selected:") }} <b>' + data.auto_selected + '</b>';
                     }
+                    if (data.errors && data.errors.length > 0) {
+                        msg += '<br/><br/><small class="text-warning">{{ lang._("Parse errors:") }}<br/>';
+                        for (var i = 0; i < data.errors.length && i < 10; i++) {
+                            msg += '&bull; ' + $('<span/>').text(data.errors[i]).html() + '<br/>';
+                        }
+                        if (data.errors.length > 10) {
+                            msg += '&hellip; ' + (data.errors.length - 10) + ' {{ lang._("more") }}';
+                        }
+                        msg += '</small>';
+                    }
                     BootstrapDialog.alert({type: BootstrapDialog.TYPE_SUCCESS, message: msg});
                     $("#import_uris_text").val('');
                     $(gridId).bootgrid('reload');
                     markGeneralDirty();
                 } else {
-                    BootstrapDialog.alert('{{ lang._("Import failed: ") }}' + (data.message || 'unknown error'));
+                    var errMsg = data.message || 'unknown error';
+                    if (data.errors && data.errors.length > 0) {
+                        errMsg += '<br/><br/><small>';
+                        for (var j = 0; j < data.errors.length && j < 10; j++) {
+                            errMsg += '&bull; ' + $('<span/>').text(data.errors[j]).html() + '<br/>';
+                        }
+                        errMsg += '</small>';
+                    }
+                    BootstrapDialog.alert('{{ lang._("Import failed: ") }}' + errMsg);
                 }
             });
         });
@@ -129,9 +219,10 @@
                     return;
                 }
                 if (data && data.response) {
-                    $("#xproxy_log_output").text(data.response);
                     var el = document.getElementById('xproxy_log_output');
-                    if (el) {
+                    var atBottom = el && (el.scrollHeight - el.scrollTop - el.clientHeight < 30);
+                    $("#xproxy_log_output").text(data.response);
+                    if (el && atBottom) {
                         el.scrollTop = el.scrollHeight;
                     }
                 }
