@@ -74,40 +74,6 @@ function xproxy_policy_route_enabled()
         return false;
     }
 
-    // Check both current and legacy PID file locations
-    $pidFile = '/var/run/xproxy_xray.pid';
-    if (!file_exists($pidFile)) {
-        return false;
-    }
-    $pid = (int)trim(@file_get_contents($pidFile));
-    if ($pid <= 0) {
-        return false;
-    }
-    exec('/bin/kill -0 ' . escapeshellarg((string)$pid) . ' 2>/dev/null', $out, $ret);
-    if ($ret !== 0) {
-        return false;
-    }
-
-    $tunBin = '/usr/local/bin/hev-socks5-tunnel';
-    if (is_file($tunBin)) {
-        // Check both current and legacy PID file names
-        $tunPidFile = '/var/run/xproxy_hev.pid';
-        if (!file_exists($tunPidFile)) {
-            $tunPidFile = '/var/run/xproxy_tun2socks.pid';
-        }
-        if (!file_exists($tunPidFile)) {
-            return false;
-        }
-        $tunPid = (int)trim(@file_get_contents($tunPidFile));
-        if ($tunPid <= 0) {
-            return false;
-        }
-        exec('/bin/kill -0 ' . escapeshellarg((string)$tunPid) . ' 2>/dev/null', $tunOut, $tunRet);
-        if ($tunRet !== 0) {
-            return false;
-        }
-    }
-
     foreach ($mdl->servers->server->iterateItems() as $uuid => $srv) {
         if ($uuid === $active) {
             return true;
