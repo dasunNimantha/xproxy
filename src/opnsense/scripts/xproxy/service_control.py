@@ -845,6 +845,7 @@ _SYSCTL_TUNABLES = {
 
 def _apply_sysctl_tuning():
     """Apply TCP buffer tuning at runtime (idempotent)."""
+    subprocess.run(['kldload', 'cc_cdg'], capture_output=True, check=False)
     for key, val in _SYSCTL_TUNABLES.items():
         subprocess.run(
             ['sysctl', '%s=%s' % (key, val)],
