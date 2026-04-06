@@ -14,7 +14,7 @@ jobs:
       matrix:
         python-version: ["3.9", "3.11"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -31,7 +31,7 @@ jobs:
     name: Python syntax & style
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -55,7 +55,7 @@ jobs:
     name: PHP syntax check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -70,7 +70,7 @@ jobs:
     name: XML validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate XML files
         run: |
@@ -83,7 +83,7 @@ jobs:
     name: Shell script check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Check shell scripts with shellcheck
         run: |
@@ -93,7 +93,7 @@ jobs:
     name: Config file validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate actions.conf structure
         run: |
@@ -118,7 +118,7 @@ jobs:
     name: FreeBSD integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Test on FreeBSD
         uses: vmactions/freebsd-vm@v1
